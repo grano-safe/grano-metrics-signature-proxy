@@ -1,0 +1,12 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "*.env*": "env",
+    "*.env.*": "env"
+  },
+  "workbench.tree.indent": 15,
+  "material-icon-theme.activeIconPack": "nest"
+}

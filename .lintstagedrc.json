@@ -1,0 +1,3 @@
+{
+  "*.ts": ["prettier --log-level warn --write", "eslint --fix --max-warnings 0"]
+}

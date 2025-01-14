@@ -1,0 +1,13 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running pre-push checks..."
+
+echo "Running eslint checks..."
+
+echo "Running type checks..."
+
+yarn concurrently \
+  "yarn prettier:check" \
+  "yarn eslint:check" \
+  "yarn type:check"
