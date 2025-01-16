@@ -15,8 +15,9 @@ export function defineShutdownHandlers({
   server: http.Server
 }) {
   const shutdown = () => {
+    logger.log('\n')
+
     logger.log(
-      '\n',
       chalk.cyan('[ INFO ]'),
 
       chalk.blue('Closing gracefully...')
