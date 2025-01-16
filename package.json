@@ -70,5 +70,8 @@
       "path": "./node_modules/cz-conventional-changelog"
     }
   },
+  "resolutions": {
+    "micromatch": "^4.0.8"
+  },
   "packageManager": "yarn@4.5.1"
 }
