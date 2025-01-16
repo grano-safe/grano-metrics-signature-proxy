@@ -5,6 +5,7 @@ import type { AxiosError } from 'axios'
 import type { Request, Response } from 'express'
 
 import { createHttpClient } from 'core/http'
+import { captureException } from 'core/error-tracing'
 
 import { signatureNonceLength } from 'constants/security'
 import { writeHeadersToResponse } from 'utils/headers'
@@ -72,6 +73,13 @@ export function createProxyMiddleware({
           req,
           targetUrl,
           error,
+        })
+
+        captureException(error, {
+          extra: {
+            message: 'Proxy Internal Error',
+            url: targetUrl + req.url,
+          },
         })
 
         return

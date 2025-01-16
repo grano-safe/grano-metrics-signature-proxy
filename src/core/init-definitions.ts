@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import { LoggerLikeObject } from 'types/logger'
 
 import { getNetworkTime } from 'core/ntp'
+import { captureException } from 'core/error-tracing'
 
 import { logProxyNtpError, logProxyNtpWarning } from 'utils/logs'
 import { systemTymeIsMoreThanOneMinuteFromReference } from 'utils/time'
@@ -30,14 +31,22 @@ export function loadInitialDefinitions({ logger }: { logger: LoggerLikeObject })
           ref: date,
         })
       ) {
-        logProxyNtpError({
-          logger,
-
-          message: `The system time is out of sync with UTC.
+        const message = `The system time is out of sync with UTC.
 
             UTC Time: ${date.toISOString()}
             System Time: ${now.toISOString()}
-          `,
+          `
+
+        logProxyNtpError({
+          logger,
+
+          message,
+        })
+
+        captureException(null, {
+          extra: {
+            message,
+          },
         })
 
         process.exit(1)
@@ -45,13 +54,21 @@ export function loadInitialDefinitions({ logger }: { logger: LoggerLikeObject })
 
       logger.info(chalk.cyan('[ INFO ]'), chalk.green('Time verification complete.'))
     } catch (error) {
+      const message =
+        'Unable to get current time for verification. The system time may be incorrect.'
+
       logProxyNtpWarning({
         logger,
 
-        message:
-          'Unable to get current time for verification. The system time may be incorrect.',
+        message,
 
         error,
+      })
+
+      captureException(error, {
+        extra: {
+          message,
+        },
       })
     }
   }

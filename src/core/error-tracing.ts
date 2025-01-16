@@ -1,7 +1,11 @@
 import chalk from 'chalk'
-import Sentry from '@sentry/node'
+import Sentry, { captureException as baseCaptureException } from '@sentry/node'
+
+import type { ExclusiveEventHintOrCaptureContext } from '@sentry/core/build/types/utils/prepareEvent.d.ts'
 
 import { LoggerLikeObject } from 'types/logger'
+
+let isSentryStarted = false
 
 export function loadSentry({
   SENTRY_DSN,
@@ -24,10 +28,23 @@ export function loadSentry({
 
   logger.info(chalk.cyan('[ INFO ]'), chalk.green('Sentry initialized.'))
 
+  isSentryStarted = true
+
   const close = () => {
     Sentry.close()
   }
 
   process.on('SIGINT', close)
   process.on('SIGTERM', close)
+}
+
+export function captureException(
+  exception: unknown,
+  hint?: ExclusiveEventHintOrCaptureContext
+) {
+  if (!isSentryStarted) {
+    return
+  }
+
+  baseCaptureException(exception, hint)
 }

@@ -10,11 +10,11 @@ import bodyParser from 'body-parser'
 import chalk from 'chalk'
 import express from 'express'
 import http from 'http'
-import ms from 'ms'
 
 import { loadEnvironment } from 'core/environment'
 import { loadSentry } from 'core/error-tracing'
 import { createProxyMiddleware } from 'core/proxy-middleware'
+import { defineShutdownHandlers } from 'core/sutdown-handler'
 
 const { requiredEnvs, optionalEnvs } = loadEnvironment({
   logger,
@@ -52,48 +52,10 @@ function init() {
     )
   })
 
-  const shutdown = () => {
-    logger.log(
-      chalk.cyan('[ INFO ]'),
-
-      chalk.blue('Closing gracefully...')
-    )
-
-    server.close(err => {
-      if (err) {
-        logger.error(
-          chalk.red.bold('[ ERROR ]'),
-
-          chalk.red('graceful shutdown error')
-        )
-
-        logger.error(err)
-
-        process.exit(1)
-      }
-
-      logger.log(
-        chalk.cyan('[ INFO ]'),
-
-        chalk.blue('Goodbye!')
-      )
-
-      process.exit(0)
-    })
-
-    setTimeout(() => {
-      logger.error(
-        chalk.red.bold('[ ERROR ]'),
-
-        chalk.red('Forcing the server to close...')
-      )
-
-      process.exit(1)
-    }, ms('10s'))
-  }
-
-  process.on('SIGINT', shutdown)
-  process.on('SIGTERM', shutdown)
+  defineShutdownHandlers({
+    logger,
+    server,
+  })
 }
 
 init()
