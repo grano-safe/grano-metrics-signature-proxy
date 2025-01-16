@@ -1,20 +1,12 @@
 # Grano Metrics Signature Proxy
 
-## Overview
+## Description
 
-This project is a proxy server designed to assist with signing requests for Grano Metrics integrations. It validates and signs incoming requests using HMAC and forwards them to the target API.
+This proxy server assists in signing requests for Grano Metrics integrations. It ensures that the requests are properly signed with HMAC, timestamp, and nonce, while also providing error tracing and time synchronization.
 
-## Features
+## Requirements
 
-- Signs requests with HMAC SHA3-512.
-- Appends a unique nonce and timestamp to each request.
-- Logs detailed request information.
-- Forwards responses from the target API, including headers and status codes.
-- Supports environment variable configuration via `.env` files.
-
-## Prerequisites
-
-- Linux bash/WSL
+- Linux bash or WSL
 - Node.js v20 or later
 - Yarn package manager v4.5.1 or later
 
@@ -24,124 +16,167 @@ In the latest versions, yarn comes with node via corepack. You can enable yarn g
 
 ```bash
 corepack enable
+
 ```
 
-## Installation
+### Environment Variables
 
-1. Clone the repository
+This project requires the following environment variables to function:
 
-2. Install dependencies:
+- `PORT`: The port number on which the server will run (must be a valid number).
+- `METRICS_API_URL_TARGET`: The target URL for the Grano Metrics API.
+- `HMAC_SECRET`: The secret key for HMAC signature generation.
+
+Optional environment variables:
+
+- `SENTRY_DSN`: The DSN for Sentry error tracking.
+- `CUSTOM_REQUEST_TIMEOUT_MS`: Custom timeout for requests, in milliseconds. (default 10 minutes)
+
+> **Note:** In production, ensure that `.env` files and environment variables are stored in a secure location and not exposed to unauthorized access.
+
+### Dependencies
+
+- `axios`: For HTTP client.
+- `body-parser`: To parse incoming requests.
+- `chalk`: For colored console logging.
+- `dayjs`: For date and time handling.
+- `dotenv`: To load environment variables from `.env`.
+- `express`: Web framework for Node.js.
+- `ms`: For handling time durations.
+- `zod`: For environment validation.
+- `@sentry/node`: For Sentry error tracking.
+
+### Development Dependencies
+
+- `@commitlint/cli`: For commit message linting.
+- `@commitlint/config-conventional`: Conventional commit message configuration.
+- `@types/body-parser`: TypeScript types for `body-parser`.
+- `@types/express`: TypeScript types for `express`.
+- `@types/jest`: TypeScript types for `jest`.
+
+## Setup
+
+1. Clone the repository.
+
+   ```bash
+   git clone git@github.com:grano-safe/grano-metrics-signature-proxy.git
+   cd grano-metrics-signature-proxy
+
+   ```
+
+2. Install dependencies.
 
    ```bash
    yarn install
+
    ```
 
-3. Set up the `.env` file:
-   Create a `.env` file in the project root with the following variables:
+3. Create a .env file at the root of the project with the required environment variables.
+   (or define system-level variables, bash-level variables, etc.)
+
+   Example:
+
    ```env
    PORT=3000
-   METRICS_API_URL_TARGET=https://target-api.com
-   HMAC_SECRET=your-secret-key
+   METRICS_API_URL_TARGET=https://metrics-api.granosafe.com.br
+   HMAC_SECRET=your_hmac_secret_key
+
+   SENTRY_DSN=
+   CUSTOM_REQUEST_TIMEOUT_MS=
+
    ```
-   > **Note:** In production, ensure that `.env` files and environment variables are stored in a secure location and not exposed to unauthorized access.
+
+4. If you're using Sentry for error tracking, add the SENTRY_DSN variable to your .env file.
+
+5. Run the project.
+
+   ```bash
+   yarn build
+   yarn start
+
+   ```
+
+   For development mode:
+
+   ```bash
+   yarn dev
+
+   ```
+
+   With Docker:
+
+   Run the following command to build the image:
+
+   ```bash
+   docker build -t grano-metrics-signature-proxy .
+
+   ```
+
+   Then, run the container with:
+
+   ```bash
+   docker run --env-file .env -p 3020:3020 grano-metrics-signature-proxy
+
+   ```
+
+6. You can use [PM2](https://www.npmjs.com/package/pm2) for resilience in unstable systems.
+
+## Functionality
+
+### Signature Generation
+
+The server generates a signature for each request based on the following parameters:
+
+- `n`: A randomly generated nonce (24-byte hexadecimal string).
+- `t`: The timestamp of the request.
+- `d`: The body of the request.
+
+This signature is then sent along with the request headers as:
+
+- `x-metrics-timestamp`: The timestamp of the request.
+- `x-metrics-nonce`: The generated nonce.
+- `x-metrics-signature`: The HMAC signature.
+
+### Time Synchronization
+
+The server checks that the system time is within one minute of the UTC time using an NTP (Network Time Protocol) server. If the time is not synchronized, the server will terminate.
+
+### Proxy Middleware
+
+The proxy middleware forwards requests to the target Grano Metrics API, while logging the request details and response status.
+
+### Error Handling
+
+If an error occurs during the request or response process, the server will log the error, and in case of failure, it will return the error response to the client.
+
+### Graceful Shutdown
+
+The server handles graceful shutdown on receiving termination signals (SIGINT, SIGTERM), ensuring that all ongoing requests are completed before the server shuts down.
+
+## Testing
+
+To run tests:
+
+```bash
+npm test
+
+```
+
+Ensure you have your environment variables set up correctly before running the tests.
 
 ## Scripts
 
-- **Prepare the environment (git hooks):**
-  ```bash
-  yarn prepare
-  ```
-- **Start the server in development mode:**
-  ```bash
-  yarn dev
-  ```
-- **Build for production:**
-  ```bash
-  yarn build
-  ```
-- **Run tests:**
-  ```bash
-  yarn test
-  ```
-- **Check types:**
-  ```bash
-  yarn type:check
-  ```
-- **Lint and format code:**
-  ```bash
-  yarn eslint && yarn prettier
-  ```
-
-## Usage (Dev)
-
-1. Start the server:
-   ```bash
-   yarn dev
-   ```
-2. The proxy will listen for incoming requests on the specified `PORT`.
-
-3. Incoming requests will be signed with the following headers added:
-
-   - `x-metrics-timestamp`: Timestamp of the request.
-   - `x-metrics-nonce`: Unique 24-byte nonce.
-   - `x-metrics-signature`: HMAC signature of the payload.
-
-4. Requests will be forwarded to the `METRICS_API_URL_TARGET`.
-
-## Development Workflow
-
-### Logging
-
-Logs include request details such as method, status code, URL, and client IP. Errors during forwarding are also logged.
-
-### Customization
-
-Modify the `createProxyMiddleware` function in `src/main.ts` to customize the proxy's behavior.
-
-## Deployment
-
-To deploy the proxy:
-
-1. Build the project:
-   ```bash
-   yarn build
-   ```
-2. Deploy the compiled files in the `dist` directory to your production server with:
-
-   ```bash
-   node dist/index.js
-   ```
-
-   You can use [PM2](https://www.npmjs.com/package/pm2) for resilience in unstable systems.
-
-   If you want the server to start together with the system, run the command below and follow the instructions listed:
-
-   ```bash
-   pm2 startup
-   ```
-
-3. Set the environment variables on your production server.
-
-## You can use Docker too
-
-```bash
-docker build -t grano-metrics-signature-proxy .
-```
-
-```bash
-docker run -p 3020:3020 --env-file .env grano-metrics-signature-proxy
-```
-
-## Troubleshooting
-
-### Common Issues
-
-- **Missing Environment Variables:** Ensure all required variables are defined in the `.env` file or in the system path/global envs.
-- **Port Conflicts:** Ensure the `PORT` specified in the `.env` file is not in use.
-
-### Debugging
-
-Use `console.log` or a debugger to inspect runtime behavior. Logs are output to the console for all incoming requests.
+- `prepare`: Prepares the environment for development (git hooks).
+- `reinstall`: Reinstalls the dependencies.
+- `clear`: Clears the project build files.
+- `dev`: Runs the project in development mode with nodemon.
+- `build`: Builds the project for production.
+- `start`: Starts the production server.
+- `test`: Runs the tests.
+- `commit`: Runs the commitizen tool for commit message consistency.
+- `type:check`: Checks TypeScript types.
+- `prettier`: Formats the code with Prettier.
+- `eslint`: Lints the code with ESLint.
 
 ## Contributing
 
@@ -149,4 +184,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+MIT License. See [LICENSE](./LICENSE) for details.

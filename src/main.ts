@@ -1,132 +1,99 @@
-process.env.TZ = 'UTC'
-
-import dotenv from 'dotenv'
-
-dotenv.config()
-
-import crypto from 'node:crypto'
-
-import axios, { AxiosError } from 'axios'
-import bodyParser from 'body-parser'
-import chalk from 'chalk'
-import dayjs from 'dayjs'
-import express, { Request, Response } from 'express'
-import z from 'zod'
+import { loadInitialDefinitions } from 'core/init-definitions'
 
 const logger = console
 
-const nonceLength = 24 // 48 hexadecimal characters require 24 bytes
+loadInitialDefinitions({
+  logger,
+})
 
-const envsSchema = z
-  .object({
-    PORT: z.string(),
-    METRICS_API_URL_TARGET: z.string(),
-    HMAC_SECRET: z.string(),
-  })
-  .required()
+import bodyParser from 'body-parser'
+import chalk from 'chalk'
+import express from 'express'
+import http from 'http'
+import ms from 'ms'
 
-function loadConfig() {
-  const parsed = envsSchema.safeParse(process.env)
+import { loadEnvironment } from 'core/environment'
+import { loadSentry } from 'core/error-tracing'
+import { createProxyMiddleware } from 'core/proxy-middleware'
 
-  if (!parsed.success) {
-    logger.error(chalk.red.bold('ENV Error - Missing env definitions'))
+const { requiredEnvs, optionalEnvs } = loadEnvironment({
+  logger,
+})
 
-    logger.table(
-      Object.entries(parsed.error.flatten().fieldErrors).map(([env, error]) => ({
-        env,
-        error,
-      }))
-    )
+loadSentry({
+  logger,
 
-    process.exit(1)
-  }
+  SENTRY_DSN: optionalEnvs.SENTRY_DSN,
+})
 
-  return {
-    PORT: process.env.PORT,
-    METRICS_API_URL_TARGET: process.env.METRICS_API_URL_TARGET,
-    HMAC_SECRET: process.env.HMAC_SECRET,
-  }
-}
-
-function logRequest(req, status, targetUrl) {
-  logger.info(
-    chalk.cyan('[ LOG ]'),
-    chalk.blue(req.protocol.toUpperCase()),
-    chalk.blue(req.httpVersion),
-    '-',
-    status > 400 ? chalk.red.bold(status) : status,
-    targetUrl + req.url,
-    req.ip ? chalk.yellow(req.ip) : ''
-  )
-}
-
-function createProxyMiddleware({
-  targetUrl,
-  hmacSecret,
-}: {
-  targetUrl: string
-  hmacSecret: string
-}) {
-  return async (req: Request, res: Response) => {
-    const timestamp = dayjs().valueOf()
-    const nonce = crypto.randomBytes(nonceLength).toString('hex')
-
-    const hmacPayload = `n:${nonce};t:${timestamp};d:${req.body}`
-    const signature = crypto
-      .createHmac('sha3-512', hmacSecret)
-      .update(hmacPayload)
-      .digest('hex')
-
-    req.headers['x-metrics-timestamp'] = String(timestamp)
-    req.headers['x-metrics-nonce'] = nonce
-    req.headers['x-metrics-signature'] = signature
-
-    try {
-      const response = await axios({
-        method: req.method,
-        url: targetUrl + req.url,
-        headers: { ...req.headers, host: null },
-        data: req.body,
-      })
-
-      Object.entries(response.headers).forEach(([key, value]) => {
-        res.setHeader(key, value)
-      })
-
-      logRequest(req, response.status, targetUrl)
-
-      res.status(response.status).send(response.data)
-    } catch (error) {
-      const rs = error as AxiosError
-
-      Object.entries(rs.response.headers).forEach(([key, value]) => {
-        res.setHeader(key, value)
-      })
-
-      logRequest(req, rs.response.status, targetUrl)
-
-      res.status(rs.response.status).send(rs.response.data)
-    }
-  }
-}
-
-async function init() {
-  const { PORT, METRICS_API_URL_TARGET, HMAC_SECRET } = loadConfig()
-
+function init() {
   const app = express()
 
   app.use(bodyParser.raw({ type: '*/*' }))
 
   app.use(
-    createProxyMiddleware({ targetUrl: METRICS_API_URL_TARGET, hmacSecret: HMAC_SECRET })
+    createProxyMiddleware({
+      logger,
+
+      targetUrl: requiredEnvs.METRICS_API_URL_TARGET,
+      hmacSecret: requiredEnvs.HMAC_SECRET,
+
+      ms_timeout: optionalEnvs.CUSTOM_REQUEST_TIMEOUT_MS,
+    })
   )
 
-  await app.listen(PORT, () => {
+  const server = http.createServer(app)
+
+  server.listen(requiredEnvs.PORT, () => {
     logger.log(
       chalk.cyan('[ INFO ]'),
-      chalk.green(`Metrics Signature Proxy listening at port: ${PORT}`)
+
+      chalk.green(`Metrics Signature Proxy listening at port: ${requiredEnvs.PORT}`)
     )
   })
+
+  const shutdown = () => {
+    logger.log(
+      chalk.cyan('[ INFO ]'),
+
+      chalk.blue('Closing gracefully...')
+    )
+
+    server.close(err => {
+      if (err) {
+        logger.error(
+          chalk.red.bold('[ ERROR ]'),
+
+          chalk.red('graceful shutdown error')
+        )
+
+        logger.error(err)
+
+        process.exit(1)
+      }
+
+      logger.log(
+        chalk.cyan('[ INFO ]'),
+
+        chalk.blue('Goodbye!')
+      )
+
+      process.exit(0)
+    })
+
+    setTimeout(() => {
+      logger.error(
+        chalk.red.bold('[ ERROR ]'),
+
+        chalk.red('Forcing the server to close...')
+      )
+
+      process.exit(1)
+    }, ms('10s'))
+  }
+
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
 }
 
 init()

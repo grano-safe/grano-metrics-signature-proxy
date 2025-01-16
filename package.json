@@ -10,6 +10,7 @@
     "clear": "sh scripts/setup/clear.sh",
     "dev": "nodemon -q --watch src --exec tsx src/main.ts --tsconfig ./tsconfig.json",
     "build": "sh scripts/build/build-dist.sh",
+    "start": "node dist/index.js",
     "test": "jest",
     "commit": "cz",
     "type:check": "tsc --project tsconfig.json --noEmit",
@@ -19,12 +20,14 @@
     "eslint:check": "eslint --max-warnings 0 ."
   },
   "dependencies": {
+    "@sentry/node": "^8.50.0",
     "axios": "^1.7.9",
     "body-parser": "^1.20.3",
     "chalk": "^5.4.1",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "ms": "^2.1.3",
     "rimraf": "^6.0.1",
     "zod": "^3.24.1"
   },
@@ -34,6 +37,7 @@
     "@types/body-parser": "^1.19.5",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
+    "@types/ms": "^0.7.34",
     "@types/node": "^22.10.6",
     "@typescript-eslint/eslint-plugin": "^6.5.0",
     "@typescript-eslint/parser": "^6.5.0",
