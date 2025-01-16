@@ -16,6 +16,7 @@ export function defineShutdownHandlers({
 }) {
   const shutdown = () => {
     logger.log(
+      '\n',
       chalk.cyan('[ INFO ]'),
 
       chalk.blue('Closing gracefully...')
