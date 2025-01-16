@@ -6,6 +6,12 @@ This proxy server assists in signing requests for Grano Metrics integrations. It
 
 ## Requirements
 
+`Secret key protection`: The secret key used to generate the HMAC needs to be stored securely. If the proxy and the integration server are on the same network or hosting, the key should only be accessible to the proxy to prevent leaks.
+
+`Proxy access control`: The proxy needs to be protected against unauthorized access. Only the integration server should have access to the proxy. If possible, use firewall rules to prevent external connections from accessing the proxy and making requests.
+
+`Auditability and logs`: Keeping logs of all requests made by the integration server can be useful for auditing purposes and to detect attack attempts or anomalous behavior. The proxy server generates logs to STDOUT of each request.
+
 - Linux bash or WSL
 - Node.js v20 or later
 - Yarn package manager v4.5.1 or later
