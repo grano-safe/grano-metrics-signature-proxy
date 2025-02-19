@@ -6,6 +6,7 @@ import type { Request, Response } from 'express'
 
 import { createHttpClient } from 'core/http'
 import { captureException } from 'core/error-tracing'
+import { checkMetricsServerConnectionHealth } from 'core/metrics-server-reach'
 
 import { signatureNonceLength } from 'constants/security'
 import { writeHeadersToResponse } from 'utils/headers'
@@ -27,6 +28,11 @@ export function createProxyMiddleware({
   const httpClient = createHttpClient({
     baseURL: targetUrl,
     ms_timeout,
+  })
+
+  checkMetricsServerConnectionHealth({
+    httpClient,
+    logger,
   })
 
   return async (req: Request, res: Response) => {

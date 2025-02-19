@@ -159,12 +159,18 @@ If an error occurs during the request or response process, the server will log t
 
 The server handles graceful shutdown on receiving termination signals (SIGINT, SIGTERM), ensuring that all ongoing requests are completed before the server shuts down.
 
+## Metrics Server Connection Check
+
+At startup, the proxy verifies connectivity to the Metrics server by sending a GET request to `/core/v1/health/readiness`. A success results in a log message, while a failure triggers an error capture and logs the error after a 0.3-second delay.
+
+This helps identify errors and pending configurations before the application starts receiving real traffic.
+
 ## Testing
 
 To run tests:
 
 ```bash
-npm test
+yarn test
 
 ```
 
