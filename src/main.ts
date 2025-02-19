@@ -29,7 +29,7 @@ loadSentry({
 function init() {
   const app = express()
 
-  app.use(bodyParser.raw({ type: '*/*' }))
+  app.use(bodyParser.raw({ type: () => true }))
 
   app.use(
     createProxyMiddleware({

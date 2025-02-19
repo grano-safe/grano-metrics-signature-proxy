@@ -20,6 +20,7 @@ export function logRequest({
     chalk.blue(req.protocol.toUpperCase()),
     chalk.blue(req.httpVersion),
     '-',
+    req.method,
     status > 400 ? chalk.red.bold(status) : status,
     targetUrl + req.url,
     req.ip ? chalk.yellow(req.ip) : ''

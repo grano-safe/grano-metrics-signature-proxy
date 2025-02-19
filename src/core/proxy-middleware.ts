@@ -11,6 +11,8 @@ import { checkMetricsServerConnectionHealth } from 'core/metrics-server-reach'
 import { signatureNonceLength } from 'constants/security'
 import { writeHeadersToResponse } from 'utils/headers'
 import { logProxyError, logRequest } from 'utils/logs'
+import { methodSupportsBody } from 'utils/http'
+import { isEmptyObject } from 'utils/objects'
 
 import { LoggerLikeObject } from 'types/logger'
 
@@ -39,7 +41,24 @@ export function createProxyMiddleware({
     const timestamp = dayjs().valueOf()
     const nonce = crypto.randomBytes(signatureNonceLength).toString('hex')
 
-    const hmacPayload = `n:${nonce};t:${timestamp};d:${req.body}`
+    const requestPayload = (() => {
+      if (!methodSupportsBody(req.method)) {
+        return ''
+      }
+
+      if (Buffer.isBuffer(req.body)) {
+        return req.body.toString('utf-8')
+      }
+
+      if (isEmptyObject(req.body)) {
+        return '{}'
+      }
+
+      return req.body
+    })()
+
+    const hmacPayload = `n:${nonce};t:${timestamp};d:${requestPayload}`
+
     const signature = crypto
       .createHmac('sha3-512', hmacSecret)
       .update(hmacPayload)
