@@ -176,6 +176,8 @@ yarn test
 
 Ensure you have your environment variables set up correctly before running the tests.
 
+To-do: **The tests carried out with this proxy so far are limited to integration tests through other projects. We will soon add unit tests to this repository as well.**
+
 ## Scripts
 
 - `prepare`: Prepares the environment for development (git hooks).
