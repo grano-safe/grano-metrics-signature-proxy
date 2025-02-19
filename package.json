@@ -1,6 +1,6 @@
 {
   "name": "grano-metrics-signature-proxy",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A proxy server to assist in signing requests for Grano Metrics integrations.",
   "author": "AllanOliveiraM <allan@granosafe.dev>",
   "license": "MIT",
