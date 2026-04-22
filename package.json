@@ -10,6 +10,7 @@
     "clear": "sh scripts/setup/clear.sh",
     "dev": "tsx watch src/main.ts",
     "build": "sh scripts/build/build-dist.sh",
+    "build:pack": "sh scripts/build/build-pack.sh",
     "start": "node dist/index.js",
     "test": "jest",
     "commit": "cz",
@@ -40,11 +41,12 @@
     "@types/node": "^22.10.6",
     "@typescript-eslint/eslint-plugin": "^6.5.0",
     "@typescript-eslint/parser": "^6.5.0",
-    "@vercel/ncc": "^0.38.3",
+    "@vercel/ncc": "^0.38.4",
     "commitizen": "^4.3.0",
     "commitlint": "^17.7.1",
     "concurrently": "^8.2.1",
     "cz-conventional-changelog": "^3.3.0",
+    "esbuild": "^0.28.0",
     "eslint": "^8.48.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-jest": "^28.9.0",
@@ -60,7 +62,7 @@
   },
   "engines": {
     "yarn": ">=4.5.1",
-    "node": "^20.0.0",
+    "node": ">=24.15.0",
     "npm": "echo \"Please, use yarn\" && exit 1"
   },
   "config": {

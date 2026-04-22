@@ -1,0 +1,5 @@
+{
+  "main": "dist/bundle/index.js",
+  "output": "dist/bin/grano-metrics-signature-proxy",
+  "mainFormat": "commonjs"
+}

@@ -4,30 +4,40 @@
 
 This proxy server assists in signing requests for Grano Metrics integrations. It ensures that the requests are properly signed with HMAC, timestamp, and nonce, while also providing error tracing and time synchronization.
 
+### **Important**
+
+`Proxy access control`: The proxy needs to be protected against unauthorized access. Only your integration server should have access to the proxy. If possible, use firewall rules to prevent external connections from accessing the proxy and making requests.
+
+`Auditability and logs`: Keeping logs of all requests made by the integration server can be useful for auditing purposes and to detect attack attempts or anomalous behavior. The proxy server writes a log entry to STDOUT for each request.
+
 ## Requirements
 
-`Secret key protection`: The secret key used to generate the HMAC needs to be stored securely. If the proxy and the integration server are on the same network or hosting, the key should only be accessible to the proxy to prevent leaks.
+`Secret key`: The secret key used to generate the HMAC must be stored securely. If the proxy and the integration server are on the same network or hosting, the key should only be accessible to the proxy to prevent leaks.
 
-`Proxy access control`: The proxy needs to be protected against unauthorized access. Only the integration server should have access to the proxy. If possible, use firewall rules to prevent external connections from accessing the proxy and making requests.
+- A Linux shell or WSL
 
-`Auditability and logs`: Keeping logs of all requests made by the integration server can be useful for auditing purposes and to detect attack attempts or anomalous behavior. The proxy server generates logs to STDOUT of each request.
+And only to build from source:
 
-- Linux bash or WSL
-- Node.js v20 or later
+- Node.js v24 or later
 - Yarn package manager v4.5.1 or later
 
 You can install Node.js easily with [NVM](https://github.com/nvm-sh/nvm#installing-and-updating) or [FNM](https://github.com/Schniz/fnm).
 
-In the latest versions, yarn comes with node via corepack. You can enable yarn globally by running:
+In recent Node.js versions, Yarn is available through Corepack. You can enable Yarn globally by running:
 
 ```bash
 corepack enable
+```
 
+If Corepack is not available, you can install it with npm:
+
+```bash
+npm i --global corepack
 ```
 
 ### Environment Variables
 
-This project requires the following environment variables to function:
+This proxy requires the following environment variables to function:
 
 - `PORT`: The port number on which the server will run (must be a valid number).
 - `METRICS_API_URL_TARGET`: The target URL for the Grano Metrics API.
@@ -36,11 +46,11 @@ This project requires the following environment variables to function:
 Optional environment variables:
 
 - `SENTRY_DSN`: The DSN for Sentry error tracking.
-- `CUSTOM_REQUEST_TIMEOUT_MS`: Custom timeout for requests, in milliseconds. (default 10 minutes)
+- `CUSTOM_REQUEST_TIMEOUT_MS`: Custom timeout for requests, in milliseconds. (default: 10 minutes)
 
 > **Note:** In production, ensure that `.env` files and environment variables are stored in a secure location and not exposed to unauthorized access.
 
-### Dependencies
+### Project Dependencies
 
 - `axios`: For HTTP client.
 - `body-parser`: To parse incoming requests.
@@ -60,7 +70,40 @@ Optional environment variables:
 - `@types/express`: TypeScript types for `express`.
 - `@types/jest`: TypeScript types for `jest`.
 
-## Setup
+## Setup Using a Prebuilt Binary
+
+1. Download the latest binary for your platform:
+
+   - Linux x64: [Official Download Here](https://gs-media.granosafe.com.br/software/grano-metrics-signature-proxy/grano-metrics-signature-proxy-linux-x64)
+
+   Place the file in a dedicated directory of your choice.
+
+2. Create a `.env` file in the same directory and define the required environment variables.
+   You may also define them as system-wide or shell environment variables instead.
+
+   Example:
+
+   ```env
+   PORT=3000
+   METRICS_API_URL_TARGET=https://metrics-api.granosafe.com.br
+   HMAC_SECRET=your_hmac_secret_key
+
+   SENTRY_DSN=
+   CUSTOM_REQUEST_TIMEOUT_MS=
+   ```
+
+3. If you use Sentry for error tracking, set the `SENTRY_DSN` variable in your `.env` file.
+
+4. Make the binary executable and start the proxy:
+
+   ```bash
+   chmod +x grano-metrics-signature-proxy-linux-x64
+   ./grano-metrics-signature-proxy-linux-x64
+   ```
+
+5. You may use [PM2](https://www.npmjs.com/package/pm2) to keep the process running and automatically restart it if needed.
+
+## Build from source
 
 1. Clone the repository.
 
@@ -77,8 +120,8 @@ Optional environment variables:
 
    ```
 
-3. Create a .env file at the root of the project with the required environment variables.
-   (or define system-level variables, bash-level variables, etc.)
+3. Create a `.env` file at the root of the project with the required environment variables.
+   Alternatively, define them as system-wide or shell environment variables.
 
    Example:
 
@@ -92,7 +135,7 @@ Optional environment variables:
 
    ```
 
-4. If you're using Sentry for error tracking, add the SENTRY_DSN variable to your .env file.
+4. If you're using Sentry for error tracking, add the `SENTRY_DSN` variable to your `.env` file.
 
 5. Run the project.
 
@@ -125,7 +168,7 @@ Optional environment variables:
 
    ```
 
-6. You can use [PM2](https://www.npmjs.com/package/pm2) for resilience in unstable systems.
+6. You may use [PM2](https://www.npmjs.com/package/pm2) to keep the process running and automatically restart it if needed.
 
 ## Functionality
 
@@ -161,33 +204,15 @@ The server handles graceful shutdown on receiving termination signals (SIGINT, S
 
 ## Metrics Server Connection Check
 
-At startup, the proxy verifies connectivity to the Metrics server by sending a GET request to `/core/v1/health/readiness`. A success results in a log message, while a failure triggers an error capture and logs the error after a 0.3-second delay.
+At startup, the proxy verifies connectivity to the Metrics server by sending a GET request to `/core/v1/health/readiness`. On success, the proxy logs a confirmation message. On failure, the proxy captures the error and logs it after a 0.3-second delay.
 
 This helps identify errors and pending configurations before the application starts receiving real traffic.
 
-## Testing
-
-To run tests:
-
-```bash
-yarn test
-
-```
-
-Ensure you have your environment variables set up correctly before running the tests.
-
-To-do: **The tests carried out with this proxy so far are limited to integration tests through other projects. We will soon add unit tests to this repository as well.**
-
 ## Scripts
 
-- `prepare`: Prepares the environment for development (git hooks).
-- `reinstall`: Reinstalls the dependencies.
-- `clear`: Clears the project build files.
-- `dev`: Runs the project in development mode with nodemon.
+- `dev`: Runs the project in development mode with tsx watch.
 - `build`: Builds the project for production.
 - `start`: Starts the production server.
-- `test`: Runs the tests.
-- `commit`: Runs the commitizen tool for commit message consistency.
 - `type:check`: Checks TypeScript types.
 - `prettier`: Formats the code with Prettier.
 - `eslint`: Lints the code with ESLint.
