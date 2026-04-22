@@ -8,5 +8,6 @@
     "*.env.*": "env"
   },
   "workbench.tree.indent": 15,
-  "material-icon-theme.activeIconPack": "nest"
+  "material-icon-theme.activeIconPack": "nest",
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

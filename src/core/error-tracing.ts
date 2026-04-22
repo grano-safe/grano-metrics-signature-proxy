@@ -1,7 +1,8 @@
 import chalk from 'chalk'
-import Sentry, { captureException as baseCaptureException } from '@sentry/node'
-
-import type { ExclusiveEventHintOrCaptureContext } from '@sentry/core/build/types/utils/prepareEvent.d.ts'
+import Sentry, {
+  captureException as baseCaptureException,
+  ExclusiveEventHintOrCaptureContext,
+} from '@sentry/node'
 
 import { LoggerLikeObject } from 'types/logger'
 
